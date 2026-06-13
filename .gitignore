@@ -79,5 +79,12 @@ logs/
 # Memory steward heartbeat archive (committed deliberately when archived; not raw mid-flight state)
 # (Adjust per your archival policy.)
 
+# Cadence sync engine — operational outputs (feature: sync_engine).
+# These are per-instance, source-repo-specific artifacts. They are kept local for
+# triage but never shipped: a fork of the engine must not inherit another project's
+# sync history. Re-enable tracking only if your project deliberately versions them.
+.cadence-sync-last-run.md
+sync-reports/
+
 # Project-specific build / dist outputs
 # Add your stack-specific entries here as the project takes shape.

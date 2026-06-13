@@ -36,7 +36,9 @@ After the universal reads above (1-7), continue with the canonical foundation se
 - `design/process/consistency-checks.md` — pre-merge QA checklist.
 - `design/process/drift-classes.md` — taxonomy of agentic-state drift classes (project-agnostic reference).
 - `design/process/autonomy-gap-framework.md` — escalation tiers (Tier 0–3) for self-resolve vs escalate decisions.
-- `scripts-infra/spawn-agent.sh` — boot script for the CLI-bootable session set (Observer + Async Architect + optional Build Executor), enforces `agent-roles.md` §7.1 permission-mode requirement.
+- `cadence.config.yml` + `FEATURES.md` — the feature manifest and catalog. Cadence is a pluggable engine; this is where subsystems are activated/deactivated. Check `./scripts-infra/cadence.sh status` to see which features are live before assuming a subsystem exists.
+- `scripts-infra/cadence.sh` — onboarding + feature toggle tool (`status` / `enable` / `disable` / `init` / `doctor`). Destructive ops are dry-run unless `--apply`.
+- `scripts-infra/spawn-agent.sh` — boot script for the CLI-bootable session set (Observer + Async Architect + optional Build Executor), enforces `agent-roles.md` §7.1 permission-mode requirement. (Feature: `observer_loop`.)
 - `handoff/notes/` — recent session handoff notes.
 
 ### After bootstrap
@@ -118,8 +120,9 @@ Append additional events on `milestone` (significant progress), `blocked` (waiti
 
 ## Repository
 
-- **Git host:** `_(remote not yet configured — set when first remote is added)_`
+- **Git host:** GitHub — `https://github.com/anufoodie/cadence`
 - **Default branch:** `main`
+- **Working branch:** `anu-singh` (developer branch; integrate to `main` via PR)
 
 ## Git Workflow
 
@@ -141,7 +144,7 @@ git pull origin main
 git add <files>
 git status --short
 git commit -S -m "Describe the change"
-# Open MR/PR when ready; do not push until the user confirms.
+# Open a GitHub PR when ready; do not push until the user confirms.
 ```
 
 ## Repository Structure
@@ -151,6 +154,10 @@ cadence/
 ├── README.md            # framework provenance + instantiation guide
 ├── AGENTS.md            # this file — operating contract
 ├── CLAUDE.md            # thin redirect to AGENTS.md
+├── cadence.config.yml   # feature manifest — which subsystems are active
+├── FEATURES.md          # feature catalog — what each toggle does + its files
+├── scripts-infra/
+│   └── cadence.sh       # onboarding + feature toggle tool
 ├── design/
 │   ├── canonical/       # horizontal foundation — decisions, ADRs,
 │   │                    # implementation plan + status, project-specific
@@ -223,6 +230,6 @@ This Cadence instance was instantiated on 2026-05-11. Placeholders replaced:
 | `<PROJECT_NAME>` | `cadence` |
 | `<DEVELOPER>` | `Anu Singh` |
 | `<ARCHITECT_ROLE>` | `Sync Architect (Cowork/Opus)` (used in `memory/INDEX.md` Ownership Model) |
-| `<GITLAB_OR_GIT_HOST_URL>` / `<GROUP>` / `<PROJECT>` | _(pending — no git remote configured yet)_ |
+| `<GIT_HOST_URL>` / `<GROUP>` / `<PROJECT>` | GitHub — `https://github.com/anufoodie/cadence` (`anufoodie` / `cadence`) |
 
 For instructions on forking this repo into a new project, see `README.md` "How to instantiate Cadence on a new project".

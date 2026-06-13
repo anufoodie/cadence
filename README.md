@@ -8,8 +8,9 @@ The name **Cadence** captures the load-bearing concept: the heartbeat / pacing /
 
 ## What this is
 
-A scaffolding for running multiple coding-agent and chat-agent sessions in parallel against a single repository without coordination collapse. It encodes:
+A scaffolding for running multiple coding-agent and chat-agent sessions in parallel against a single repository without coordination collapse. It is a **pluggable engine** — every subsystem below can be activated or deactivated per project from a single manifest (`cadence.config.yml`), so a new project onboards with exactly the coordination machinery it needs and nothing it doesn't. It encodes:
 
+- **A feature manifest** (`cadence.config.yml` + `FEATURES.md` + `scripts-infra/cadence.sh`) — one place to turn subsystems on/off; the onboarding tool prunes what you disable.
 - **An operating contract** (`AGENTS.md`) — binding rules every agent reads on spawn: Git workflow, GPG signing, forbidden actions, deferred set, bootstrap reading order, pre-action conflict + context check.
 - **A memory architecture** (`memory/`) — INDEX.md as the rolling source of truth; per-session chronicles; an append-only cross-session heartbeat ledger; the daily memory steward.
 - **A design corpus shape** (`design/`) — canonical foundation, vertical feature deep-dives, archive, references, and the process docs that govern how they evolve.
@@ -28,6 +29,8 @@ cadence/
 ├── README.md                              # this file
 ├── AGENTS.md                              # operating contract (with <PLACEHOLDERS>)
 ├── CLAUDE.md                              # thin redirect to AGENTS.md
+├── cadence.config.yml                     # feature manifest — activate/deactivate subsystems
+├── FEATURES.md                            # feature catalog — what each toggle owns
 ├── .gitignore                             # sensible defaults
 ├── memory/
 │   ├── README.md                          # memory architecture
@@ -78,6 +81,7 @@ cadence/
 │   └── references/
 │       └── README.md                      # references slot
 ├── scripts-infra/
+│   ├── cadence.sh                         # onboarding + feature toggle tool
 │   └── spawn-agent.sh                     # boot script for the CLI-bootable session set
 │                                          #   (Observer + Async Architect + optional Build Executor)
 │                                          #   enforces agent-roles.md §7.1 full-access flag
@@ -118,9 +122,19 @@ This is a one-time customization pass. Plan ~30 minutes.
    cd ~/Projects/<your-project>
    ```
 
-2. **Customize AGENTS.md placeholders** with project-specific values. Search and replace:
+2. **Choose your feature set.** Cadence is a pluggable engine — open `cadence.config.yml`
+   and edit the `project:` identity block and the `features:` toggles, or drive it from the CLI:
+   ```bash
+   ./scripts-infra/cadence.sh status               # see what's on/off
+   ./scripts-infra/cadence.sh disable observer_loop --apply
+   ./scripts-infra/cadence.sh disable sync_engine  --apply
+   ```
+   `FEATURES.md` is the catalog — what each toggle is, the files it owns, and its dependencies.
+   CORE features can't be disabled; optional ones prune their files when turned off.
+
+3. **Customize AGENTS.md placeholders** with project-specific values. Search and replace:
    - `<PROJECT_NAME>` → your project name
-   - `<GITLAB_OR_GIT_HOST_URL>` → your Git host URL
+   - `<GIT_HOST_URL>` → your Git host URL (Cadence defaults to GitHub)
    - `<GROUP>` → your org / group
    - `<PROJECT>` → your repo name in the host
    - `<DEVELOPER>` → primary developer / decision-maker
@@ -129,31 +143,31 @@ This is a one-time customization pass. Plan ~30 minutes.
 
    Branching topology is project-specific and intentionally not a placeholder — the framework is agnostic. Document your team's convention (trunk-based / GitHub Flow / GitLab Flow / etc.) in `memory/WORKING_DEFAULTS.md` "Current Operating Model" once it solidifies.
 
-3. **Customize the worktree helper.** Edit `design/process/scripts/wb-session.sh`:
+4. **Customize the worktree helper.** Edit `design/process/scripts/wb-session.sh`:
    - Replace `<PROJECT_NAME>` in `WB_REPO` default and `WB_PROJECT_BASENAME` derivation. The script ships with `<PROJECT_NAME>` placeholders; `WB_PROJECT_BASENAME` is derived from `basename $WB_REPO` so once `WB_REPO` is right, worktree naming follows automatically.
    - Customize `wb-restore-all` for your standing-session list.
    - If you don't use iTerm2, replace the AppleScript block with your terminal's equivalent.
 
-4. **Customize the memory steward prompt.** Edit `design/process/scheduled-tasks/memory-steward-prompt.md`:
+5. **Customize the memory steward prompt.** Edit `design/process/scheduled-tasks/memory-steward-prompt.md`:
    - Replace timezone (`America/Los_Angeles`) with your team's local timezone.
    - Adjust path references for any project-specific canonical docs that won't exist on day one (e.g., `code-audit.md`, `implementation-status.md`).
    - Confirm the steward's "working branch" abort guard matches your project's branching topology.
 
-5. **Decide which canonical patterns to keep.** This starter is opinionated about *shape* (5-folder design corpus, append-only decisions, per-session chronicles, heartbeat ledger). It is not opinionated about content. Open `design/canonical/README.md` and decide which of the source content patterns fit yours (anchor patterns, entity model, rules catalog, etc.). Drop the rest from your project's `canonical/README.md`.
+6. **Decide which canonical patterns to keep.** This starter is opinionated about *shape* (5-folder design corpus, append-only decisions, per-session chronicles, heartbeat ledger). It is not opinionated about content. Open `design/canonical/README.md` and decide which of the source content patterns fit yours (anchor patterns, entity model, rules catalog, etc.). Drop the rest from your project's `canonical/README.md`.
 
-6. **Initialize git** and make the first signed commit:
+7. **Initialize git** and make the first signed commit:
    ```bash
    cd ~/Projects/<your-project>
    git init -b main
-   git config commit.gpgsign true
    git config user.signingkey <your-gpg-key>
+   ./scripts-infra/cadence.sh init --apply   # prunes disabled features + sets commit.gpgsign
    git add .
    git commit -S -m "feat: initialize project from Cadence starter"
    ```
 
    (Don't push until you're ready — AGENTS.md "Explicit push confirmation" rule applies. If your team's topology uses a different default branch than `main`, swap it here.)
 
-7. **Spawn your first agent session** with `AGENTS.md` as the bootstrap reference. The agent reads `AGENTS.md` §0, creates its chronicle in `memory/sessions/`, appends a `started` event to `memory/heartbeat.md`, and is ready to work.
+8. **Spawn your first agent session** with `AGENTS.md` as the bootstrap reference. The agent reads `AGENTS.md` §0, creates its chronicle in `memory/sessions/`, appends a `started` event to `memory/heartbeat.md`, and is ready to work.
 
 ---
 

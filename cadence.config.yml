@@ -1,0 +1,45 @@
+# cadence.config.yml — Feature manifest for this Cadence instance.
+#
+# Cadence is a pluggable multi-agent workflow engine. Every subsystem below can be
+# turned on or off per project. This file is the single source of truth for which
+# features are active; `scripts-infra/cadence.sh` reads it to onboard a new project
+# and to enable/disable features later.
+#
+#   ./scripts-infra/cadence.sh status            # show what's on/off
+#   ./scripts-infra/cadence.sh disable sync_engine
+#   ./scripts-infra/cadence.sh enable worktrees
+#   ./scripts-infra/cadence.sh init --apply      # onboard: prune disabled features + fill placeholders
+#
+# Values: on | off  (true/false and yes/no are also accepted)
+# See FEATURES.md for what each feature is, the files it owns, and its dependencies.
+
+# ── Project identity (filled in during `cadence.sh init`) ──────────────────────
+project:
+  name: cadence
+  developer: Anu Singh
+  host_url: https://github.com/anufoodie/cadence
+  default_branch: main
+  working_branch: anu-singh
+  timezone: America/Los_Angeles
+
+# ── Features (toggle these) ───────────────────────────────────────────────────
+# CORE features are the minimum viable engine; leaving them on is recommended.
+# OPTIONAL features layer on coordination scale; turn off what your team won't use.
+features:
+  # CORE — the minimal engine (recommended: keep on)
+  operating_contract: on      # AGENTS.md + CLAUDE.md redirect — binding agent rules
+  memory_index: on            # memory/INDEX.md + quick-reference — rolling source of truth
+  design_corpus: on           # design/ canonical + features + process docs
+  handoff_notes: on           # handoff/notes — session-to-session continuity
+
+  # OPTIONAL — coordination scale (toggle per project)
+  heartbeat: on               # append-only cross-session heartbeat ledger
+  session_chronicles: on      # per-session chronicle files in memory/sessions/
+  worktrees: on               # git worktree isolation toolkit (wb-session.sh)
+  roles_full: on              # full 6-role model; off = minimal orchestrator/executor/steward
+  memory_steward: on          # scheduled daily memory reconciliation task
+  drift_taxonomy: on          # drift-classes taxonomy + drift-reports
+  autonomy_framework: on      # Tier 0-3 self-resolve-vs-escalate framework
+  observer_loop: off          # autonomous away-but-alive observer loop + spawn-agent.sh
+  sync_engine: off            # cross-repo sync (pull framework changes from a source repo)
+  gpg_signing: on             # require GPG-signed commits (sets git commit.gpgsign)
