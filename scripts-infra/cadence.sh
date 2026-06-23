@@ -45,6 +45,15 @@ feature_paths() {
     observer_loop)      echo "scripts-infra/spawn-agent.sh memory/last-shutdown-snapshot.md" ;;
     sync_engine)        echo "sync-reports .cadence-sync-last-run.md" ;;
     gpg_signing)        echo "" ;;   # git-config toggle, not a file
+    work_units)         echo "design/process/work-units.md" ;;
+    goal_runner)        echo "design/process/autonomy-goal-runner.md handoff/notes/goals" ;;
+    cr_authoring_contract) echo "design/process/cr-authoring-contract.md" ;;
+    runtime_binding)    echo "design/process/runtime-binding.md" ;;
+    runtime_route)      echo "design/process/runtime-route.md" ;;
+    reconciled_truth)   echo "design/process/reconciled-truth.md" ;;
+    resident_autonomy)  echo "design/process/resident-autonomy.md" ;;
+    visual_qa_catalog)  echo "design/process/visual-qa-catalog.md" ;;
+    layered_overture)   echo "LAYERED.md examples/overture" ;;
     *)                  return 1 ;;
   esac
 }
@@ -52,7 +61,9 @@ feature_paths() {
 CORE_FEATURES="operating_contract memory_index design_corpus handoff_notes"
 ALL_FEATURES="operating_contract memory_index design_corpus handoff_notes \
 heartbeat session_chronicles worktrees roles_full memory_steward drift_taxonomy \
-autonomy_framework observer_loop sync_engine gpg_signing"
+autonomy_framework observer_loop sync_engine gpg_signing \
+work_units goal_runner cr_authoring_contract runtime_binding runtime_route \
+reconciled_truth resident_autonomy visual_qa_catalog layered_overture"
 
 # ── Config helpers ────────────────────────────────────────────────────────────
 require_config() {

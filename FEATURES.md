@@ -59,6 +59,22 @@ A minimal single-developer instance can run with just the CORE four plus
 | `sync_engine` | Cross-repo sync — pull framework changes from a source repo into this instance, emitting dated sync reports | `sync-reports/`, `.cadence-sync-last-run.md` | off |
 | `gpg_signing` | Require GPG-signed commits. **Config-level** — on sets `git config commit.gpgsign true`. | (git config) | on |
 
+### EXTENDED (advanced autonomy + work-unit subsystems)
+
+These features layered on as Cadence's source-instance (a real multi-agent product) shipped them. They're **off by default** because they only pay rent for projects running multi-role autonomy at scale. A small single-developer project can ignore the whole extended set.
+
+| Feature | What it is | Owns / effect | Default |
+|---|---|---|---|
+| `work_units` | Goal → Wave → Slice work-unit hierarchy that the autonomous build framework dispatches against | `design/process/work-units.md` | off |
+| `goal_runner` | Deterministic projection of goal state from a manifest — state machine for `acceptance_pending` / `closed_with_warnings` / `in_progress` etc. | `design/process/autonomy-goal-runner.md` | off |
+| `cr_authoring_contract` | Commit-request shape contract (frontmatter schema + lint discipline + walk-readiness gate) | `design/process/cr-authoring-contract.md` | off |
+| `runtime_binding` | Tmux-backed role-to-runtime binding contract; role registry + persistent role kinds + state JSON | `design/process/runtime-binding.md` | off |
+| `runtime_route` | Route-delivery contract with canary ACK pattern — moves approved CRs from queue to bound executor sessions | `design/process/runtime-route.md` | off |
+| `reconciled_truth` | Single deterministic state-read surface that every consumer reads from (instead of stitching live from raw inputs) | `design/process/reconciled-truth.md` | off |
+| `resident_autonomy` | Always-on deterministic control plane — autonomous routing of approved slices to executors. Distinct from `observer_loop` (which is an LLM session). | `design/process/resident-autonomy.md` | off |
+| `visual_qa_catalog` | Canonical-catalog visual-QA architecture — Storybook-baseline + composition manifest + deterministic-first validation cascade | `design/process/visual-qa-catalog.md` | off |
+| `layered_overture` | Reference-instance layer at `examples/overture/` (worked obfuscated example) + `LAYERED.md` | `LAYERED.md`, `examples/overture/` | off |
+
 ---
 
 ## Dependencies & notes

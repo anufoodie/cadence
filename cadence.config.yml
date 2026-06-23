@@ -43,3 +43,14 @@ features:
   observer_loop: off          # autonomous away-but-alive observer loop + spawn-agent.sh
   sync_engine: off            # cross-repo sync (pull framework changes from a source repo)
   gpg_signing: on             # require GPG-signed commits (sets git commit.gpgsign)
+
+  # EXTENDED — advanced autonomy + work-unit subsystems (default off; turn on as your project needs them)
+  work_units: off             # Goal → Wave → Slice work-unit hierarchy doc
+  goal_runner: off            # deterministic goal-state projection (autonomy-goal-runner.md)
+  cr_authoring_contract: off  # CR shape contract + lint discipline (cr-authoring-contract.md)
+  runtime_binding: off        # tmux-backed role-to-runtime binding contract (runtime-binding.md)
+  runtime_route: off          # route-delivery contract with canary ACK (runtime-route.md)
+  reconciled_truth: off       # single deterministic state read (reconciled-truth.md)
+  resident_autonomy: off      # always-on deterministic control plane (resident-autonomy.md)
+  visual_qa_catalog: off      # canonical-catalog visual-QA architecture (visual-qa-catalog.md)
+  layered_overture: off       # examples/overture/ reference-instance layer (LAYERED.md)
