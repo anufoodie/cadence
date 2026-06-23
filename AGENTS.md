@@ -116,6 +116,19 @@ Append additional events on `milestone` (significant progress), `blocked` (waiti
 
 > **Timezone note.** The default `TZ=America/Los_Angeles` above is the convention `cadence` set as the framework default. Override to your team's local timezone if different — but pick one and use it consistently so timestamps from all sessions align on the same calendar day.
 
+### Also every session — two living planning docs
+
+**Read on bootstrap, UPDATE every working turn.** These are the compaction-survival layer; keeping them current is part of every turn, not a one-off.
+
+- **`handoff/notes/design-build-roadmap.md`** — the **sequenced critical path** still ahead + where we are in it. Recover the plan here after a compaction event instead of re-deriving from chat. Update a work item's status line the SAME turn its state changes (spawned / bounced / landed).
+- **`handoff/notes/TODO-tracker.md`** — the **unordered parking lot** for anything not to lose: open decisions, external dependencies, deferred work, polish. Park anything you defer here instead of letting it die in a chat thread.
+
+A fresh or post-compaction session must be able to recover *what's ahead and where we are* from these files without re-deriving from chat. Sessions that don't maintain them are silently introducing drift.
+
+### Adversarial pass discipline
+
+Before any session treats a non-trivial design, architecture, plan, change-request, implementation approach, or user-facing recommendation as ready to drive work, it must run at least one adversarial pass against that work product — test the strongest counterexample, the role-boundary mistake, the stale-state risk, the missing acceptance criterion, and "what would make this fail in production?" Applies to any session doing substantive design or execution planning (Architect / Executor / Observer roles). Routine routing/monitoring does not need its own pass unless the route changes scope, authority, sequencing, ownership, or risk. It is not optional polish; record the result in the handoff/heartbeat/closeout when the work is non-trivial.
+
 ---
 
 ## Repository
@@ -196,6 +209,7 @@ Project-specific source trees (e.g., `backend/`, `frontend/`, `scripts/`) sit al
 4. No bypass of GPG signing.
 5. **No staging, modifying, or committing files in the Deferred set** (see below). If your work makes you want to touch a deferred path, STOP and surface to `Anu Singh` as a scope question.
 6. No bypassing Step 0.5 pre-action conflict + context check. Skipping the `tail -n 100` heartbeat read is the same severity as skipping `git status --short` before commit.
+7. **Sandbox/VM sessions: no Git writes against the host-mounted repo.** Inspect-only (`git status` / `log` / `diff` / `show`). Never `add` / `commit` / `merge` / `cherry-pick`, never create or remove `.git/*.lock`. Route all writes to a host-side writer via heartbeat handoff (prepare the changes, list the paths, state the intended commit message, mark `NO PUSH`, surface to the autonomy loop or `Anu Singh`). Prevents host-lock stranding via FUSE-EPERM; see `design/process/operational-patterns.md` §7.
 
 ## Deferred set (out-of-scope by default — do not touch)
 

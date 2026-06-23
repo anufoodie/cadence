@@ -198,6 +198,22 @@ The discipline that keeps the loop tight:
 
 ---
 
+## §10.5. Wake checks after dormancy (applies when you run an autonomous loop)
+
+The autonomy stack is a **deterministic control plane with LLM-assisted advisory packets**, not a fully-autonomous resident operator: a single route-writer and deterministic approval/admission gates retain execution authority; advisory tooling only proposes. This shape only applies if your project runs a resident autonomy loop — small projects without that surface can skip this section.
+
+After any dormancy event — sleep, reboot, network/VPN outage, auth disruption, or unexplained idle — the first active session runs a **wake check**:
+
+1. Re-read lane / heartbeat state via the project's lane-digest tool (`<lane-digest-tool>`).
+2. Reconcile resolver-truth against the route-writer's loop-state — what does the deterministic surface say is active, blocked, claimable; what does the loop think it's doing?
+3. Restore routing / accounting via the project's loop-repair tool (`<loop-repair-tool>`) rather than stale-disposing live routeable work. A common failure mode after dormancy is "the loop thinks nothing's there because it polled while the network was down" — wake checks distinguish that from "actually nothing to do."
+
+Local heartbeat / resolver tooling survives a network outage; reasoning, remote Git, browser, and package work do not — sessions running the wake check must distinguish "can't compute" from "nothing to do" before disposing of work.
+
+The wake check is part of what raises the autonomy floor: without it, the system reflexively treats post-dormancy idle as steady-state, losing the live work that the loop missed during the gap.
+
+---
+
 ## §11. See also
 
 - `drift-classes.md` — taxonomy of drift classes this framework escalates against.
