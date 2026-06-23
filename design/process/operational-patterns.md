@@ -143,9 +143,9 @@ Then continue after a heartbeat note explaining the repair.
 - **`#` in zsh paste blocks** does not default-honor as a comment. Avoid comments in paste blocks or run `setopt interactive_comments` first.
 - **Network-first check when loopback at `127.0.0.1:<port>` is unreachable.** Check firewall / VPN posture before assuming session sandboxing semantics.
 - **GPG signing is mandatory.** If signing fails, do not retry unsigned. Emit `blocked`, fix the signing environment or stale lock, and then commit with `-S`.
-- **Stale Git locks recur.** If `.git/HEAD.lock` or `.git/index.lock` blocks a commit or merge, first confirm no live Git process is active. Remove only the stale lock file, then retry the same command.
+- **Sandbox sessions never acquire the host Git lock (prevention, not release-discipline).** A sandbox/VM session (e.g. a hosted-sandbox chat session or scheduled task) that writes to a host-mounted repo acquires the **host** `.git/index.lock` through the mount, then cannot unlink it on cleanup — the mount layer returns EPERM, the lock strands, and every host-side writer is blocked until manual removal. A "remember to release the lock" rule cannot fix this because the writer traps cleanup and the mount defeats it. Therefore: **sandbox/VM sessions are Git inspect-only** (`status` / `log` / `diff` / `show` only — never `add` / `commit` / `merge` / `cherry-pick`, never create or remove `.git/*.lock`). All repo writes and lock-resolution are owned by **host-side** writer sessions, each preceded by a lock-preflight evidence check (`<lock-preflight-script>`). Stale-lock auto-heal (no live fd holder + age over threshold) is a **host-side**-only action.
 
-**Why:** These quirks are machine-local and easy to misdiagnose as code issues. Treat them as environment checks before changing implementation.
+**Why:** These quirks are machine-local and easy to misdiagnose as code issues. Treat them as environment checks before changing implementation. The sandbox-vs-host distinction in particular has been root-caused: the FUSE-EPERM bug strands locks that the originating writer cannot clean up, blocking every host-side writer until manual intervention. Prevention is the only working discipline.
 
 ## 8. Dependency-add discipline
 
@@ -346,4 +346,150 @@ lsof -i :<canonical-ports> -i :<task-validation-ranges> 2>/dev/null
 
 ---
 
+## 15. Warm pickup vs cold-start spawn
+
+**Pattern:** When a role-bound session needs to claim work, prefer **warm pickup** (resuming an already-bound session) over **cold-start spawn** (creating a new session). Cold-start spawning incurs a startup-pulse round-trip + bootstrap reading cost; warm pickup just routes a new prompt to an idle session.
+
+**When cold-start is the right move:**
+
+- The role isn't bound yet (cold boot of the runtime).
+- The bound session is unhealthy (stale, no recent heartbeat).
+- Authority requires fresh context (e.g. a permission-mode change).
+
+**When warm pickup is the right move:**
+
+- The bound session is healthy and idle.
+- The new work is within the role's standing authority scope.
+- The bound session has recent context that's useful (recent route history, current state).
+
+**Why:** Cold-start spawn churn fragments role context across many short-lived sessions. Warm pickup preserves operational memory. Per `runtime-binding.md`, persistent roles are designed for warm pickup as the default.
+
+## 16. CLI operator-trigger model
+
+**Pattern:** Sessions that operate from a CLI runtime (not a chat interface) take action on triggers, not on intent. Triggers come from heartbeat directives, scheduled cadence, or explicit operator commands. A CLI session does not "decide on its own" to do work — it sees a trigger and responds to it.
+
+**Trigger types:**
+
+- **Heartbeat directive:** parser-safe `directive:true` event targeting this session/role.
+- **Scheduled cadence:** cron / runtime-loop tick.
+- **Operator-explicit:** human types a command in the CLI session.
+
+**Why:** A CLI session has no chat-context to interpret. Triggers must be parseable from heartbeat state alone. This pattern keeps CLI sessions deterministic — same triggers in, same actions out.
+
+## 17. Outcome reporting contract
+
+**Pattern:** Every terminal heartbeat event (`closed`, `blocked`, `merged`) must include a structured outcome ref so downstream consumers (autonomy loop, observer, lane resolver) can parse without prose interpretation.
+
+**Required outcome fields per terminal state:**
+
+| State | Required refs |
+|---|---|
+| `closed` | `outcome:<short-label>` `evidence:<artifact-or-sha>` |
+| `blocked` | `blocked:<reason-class>` `owner_needed:<role>` `evidence:<artifact-if-any>` |
+| `merged` | `outcome:merged` `commit:<sha>` `branch:<source>` |
+
+**Why:** Prose interpretation of "what happened" doesn't scale. Refs in a defined grammar let deterministic consumers route follow-ups without needing to read English.
+
+## 18. Canonical-orphan watchdog
+
+**Pattern:** Run a background watchdog that detects canonical files (under `design/canonical/`) that have been uncommitted longer than a threshold (default 24h). Emit a heartbeat warning when found. Pairs with the principle that canonical content shouldn't live indefinitely as uncommitted working state.
+
+**Heartbeat shape:**
+
+```
+<ts> | <watchdog> | note | canonical orphan risk warning: <N> uncommitted canonical path(s) older than threshold; paths:<list>; oldest:<age>h; likely_owner:<role>; suggested_action:commit, route CR, mark held, or explicitly exclude | detector:canonical-orphan target:<orchestrator> target:<observer>
+```
+
+**Why:** Canonical material that lives only as uncommitted working state is invisible to other sessions, the sync engine, and git history. A watchdog turns the visibility into a known-quantity warning.
+
+## 19. Session push-wake watcher
+
+**Pattern:** When the autonomy loop or a coordinator routes work to a target session, the watcher records `<session-pid>.wake-signal` files in a known directory. Targets see the file and know they have routed work waiting.
+
+**Why:** A push-based wake-signal beats poll-based "tail the heartbeat every N seconds." The watcher writes once; the target reads when ready. Reduces idle-tick overhead.
+
+## 20. Submit-confirmation contract for spawned executors
+
+**Pattern:** A newly-spawned executor session, after reading its kickoff prompt and bootstrapping, emits an explicit `submit-confirmation` heartbeat event before doing real work. Confirms it actually got the prompt vs the prompt being lost in spawn race.
+
+```
+<ts> | <executor-session> | note | submit-confirmation - <role>; route_id:<id>; kickoff received and parsed; first_action:<what>; NO PUSH
+```
+
+**Why:** Spawn races can drop the kickoff prompt (target session wasn't ready, race with terminal config). Without explicit confirmation, the emitter assumes success and the work silently doesn't start. Confirmation closes the loop.
+
+## 21. External health watchdog (out-of-process)
+
+**Pattern:** Health monitoring for in-process sessions runs **out-of-process** — a separate watchdog, not the session itself. The session may be wedged; only an outside observer can detect wedge.
+
+**Why:** A wedged session can't emit "I'm wedged." Out-of-process monitoring is the only reliable detection.
+
+## 22. Bounded next-work scan
+
+**Pattern:** When a role-bound session goes IDLE, it runs **one bounded scan** of the queue for eligible work. If found, it claims one. If not, it remains IDLE — does NOT loop scanning until something appears.
+
+**Boundary:** scan reads reconciled-truth (see `reconciled-truth.md`) once, applies role-specific eligibility filter, picks zero or one item.
+
+**Why:** Unbounded poll-loops eat CPU and flood heartbeat with no-op pulses. A bounded scan + true IDLE is healthier.
+
+## 23. Marshal-before-route inbox
+
+**Pattern:** Before routing a slice to an executor, marshal it through an inbox stage: validate frontmatter, confirm worktree availability, confirm dependencies satisfied, confirm path-scope orthogonal. Only after inbox passes does the route emit.
+
+**Why:** Half-baked routes that fail at the executor end pollute heartbeat with VALIDATION_FAILED noise. The inbox catches the failures earlier and surfaces them as authoring/orchestrator concerns rather than executor failures.
+
+## 24. Self-disambiguating startup pulse
+
+**Pattern:** Every startup pulse explicitly carries the session-id, role, binding mode, worktree posture, queue posture, and first-gate so downstream consumers can parse it without lookup.
+
+```
+<ts> | <session-id> | note | STARTUP-PULSE - <role>; binding:<mode>; worktree:<posture>; queue:<posture>; first_gate:<what>; NO PUSH
+```
+
+**Why:** A pulse that just says "started" requires consumers to cross-reference role / session / runtime registry. A self-disambiguating pulse parses in one read.
+
+## 25. Pulse-snapshot status surface
+
+**Pattern:** The runtime's status command exposes a single JSON snapshot of role health + queue state + recent events. Consumers read it for status; they don't poll heartbeat directly.
+
+```bash
+<runtime>-status --json
+```
+
+Equivalent to `reconciled-truth.md` for the runtime-state layer; the two surfaces compose.
+
+## 26. Fast-claim queue for spawn requests
+
+**Pattern:** When multiple sessions could claim a newly-spawned route, a fast-claim mechanism ensures exactly one wins. Reference implementation: first session to write its session-id to a claim file claims; others read and skip.
+
+**Why:** Without fast-claim, two sessions can both think they got the work, leading to duplicate execution and conflicting commits.
+
+## 27. Safe context refresh before `/clear`
+
+**Pattern:** A chat session about to run a context-clearing operation (compaction, `/clear`, or equivalent) writes its current critical state to compaction-survival docs (`design-build-roadmap.md`, `TODO-tracker.md`, chronicle) **before** the clear, not after.
+
+**Why:** Post-clear, the session has no memory of what it was doing. Pre-clear write preserves the state for the post-clear session (whether same session or replacement) to recover from.
+
+## 28. Heartbeat text-safety discipline
+
+**Pattern:** Every heartbeat append must escape pipes (`|`) in human-prose fields. Pipe is the field separator; unescaped pipes in note bodies break parsers downstream.
+
+**Why:** Heartbeat is parsed by every consumer. Format breaks propagate everywhere.
+
+## 29. Chronicle closeout guard
+
+**Pattern:** Before a session emits `closed` to heartbeat, it verifies its chronicle has an Outcomes section. A `closed` heartbeat event without a corresponding chronicle Outcomes block is incomplete and the Memory Steward flags it as drift.
+
+**Why:** The chronicle is the per-session narrative; closing without writing the outcomes loses the "what actually happened" record.
+
+## 30. Portable coordinator routing
+
+**Pattern:** Routes emitted by the Coordinator (or autonomy loop) are parser-safe and runtime-portable. They don't reference specific tmux session names or CLI runtimes — they reference role keys + route IDs. Any runtime binding can consume them.
+
+**Why:** Coupling routes to a specific runtime (tmux, iTerm, etc.) locks the framework into one embodiment. Role-keyed routes survive runtime migration.
+
+---
+
 *Maintenance: append new patterns as they emerge. Existing patterns rarely change. If a pattern proves universally binding, migrate it to AGENTS.md as a decision. Coordinate with `drift-classes.md` — new operational patterns often pair with newly-observed drift classes.*
+
+*Entries 15-30 batch-landed 2026-06-22 from the accumulated sync backlog (sync-reports 2026-05-17 through 2026-06-07). Per-entry provenance lives in the source sync reports; this batch landing was the bottleneck clearance after Cadence HEAD advanced beyond initial commit.*
