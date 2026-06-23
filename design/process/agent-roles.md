@@ -557,7 +557,9 @@ If absent for >1 hour (no recent observer-codex events): a fresh Observer instan
 - Chronicle: `memory/sessions/steward-YYYY-MM-DD.md` (per-day).
 - `MEMORY_STEWARD_LAST_RUN.md`.
 
-**Authority** — surfaces drift; does NOT modify decisions, canonical docs, or design content. Can auto-commit only within memory/.
+**Authority** — surfaces drift; does NOT modify decisions, canonical docs, or design content. Can auto-commit only within memory/ **when running host-side**. When running as a sandbox/VM task, see "Writer authority" below.
+
+**Writer authority (sandbox boundary).** When the steward runs as a sandbox/VM scheduled task it is **repo inspect-only**: it reads `git status` / `log` / `diff` / `show` for context but performs no repo or Git writes. It prepares its `memory/` changes as a handoff — one heartbeat `note` / `directive` carrying the explicit `memory/` path list, the intended commit message, and `NO PUSH` — and the autonomy loop routes that handoff to the first available host-side writer (Orchestrator → Observer → Async Architect); if all are busy it records an explicit owner-needed blocker rather than leaving the handoff inert. The host-side writer (never the sandbox session) applies, commits, and writes the `MEMORY_STEWARD_LAST_RUN.md` checkpoint. Rationale: a sandbox session cannot release the host `.git/index.lock` (FUSE EPERM) — see `design/process/operational-patterns.md` §7 and AGENTS.md Forbidden Action §7.
 
 **Spawn prompt template:**
 
@@ -581,6 +583,265 @@ If absent for >1 hour (no recent observer-codex events): a fresh Observer instan
 - Don't auto-commit outside `memory/`.
 - Don't flag legitimately-active multi-day Cowork chronicles as stale.
 - Don't archive `cowork-*` chronicles automatically.
+
+---
+
+### Coordinator (added in extended-roles wave, 2026-06-22)
+
+**Embodied by:** Any runtime adapter that can read repo state, heartbeat, commit-request metadata, and worktree state, then emit strict route/worktree directives. Reference embodiment is a CLI session in the project's runtime binding because it can inspect host worktrees and create task worktrees. Future embodiments may use other agents, terminal automation, CI runners, or other adapters that satisfy the same contract.
+
+**Purpose** — deterministic routing and state reconciliation. Coordinator converts already-approved work into executable placement, strict directives, and blocked/needs-decision notes. It exists to decouple mechanical orchestration from Strategic Orchestrator judgment, so the design-build system can run without depending on any one chat product.
+
+Coordinator is **not** "Orchestrator-lite that makes product calls." It is the mechanical half of orchestration:
+
+- scan queue and heartbeat state;
+- identify approved, blocked, active, stale, and duplicate work;
+- create or request dedicated worktrees when policy allows;
+- emit parser-safe `directive:true` routes;
+- reconcile stale role bindings and duplicate sessions;
+- stop with `blocked` when approval, priority, or product judgment is missing.
+
+**Cadence** — reactive or scheduled depending on runtime:
+
+- Operator-triggered: on "what's next", "lane check", or explicit route/spawn request.
+- Role-triggered: when an executor / Observer / Async posts `owner_needed:<coordinator-or-orchestrator>` or `worktree:missing`.
+- Scheduled: allowed only when the runtime has a reviewed queue-scan policy and emits a `STARTUP-PULSE` before action. Reference implementation is the resident deterministic autonomy loop (see `resident-autonomy.md`).
+
+**Inputs:**
+
+- `memory/heartbeat.md` recent tail and role lifecycle lines.
+- `handoff/notes/commit-requests/*.md` metadata: status, approval, scope, owner, target surface, path scope, worktree/anchor slug.
+- `standing_approval_class:` from commit-request frontmatter, interpreted through `design/process/standing-approvals.md` (when present).
+- `git worktree list`, `.wb-owner`, branch state, and current dirty state.
+- `agent-roles.md`, `memory/HEARTBEAT_SPEC.md`, `operational-patterns.md` for placement/directive rules.
+- Optional runtime status adapters: route-delivery state, runtime registry, CI queue, future agent-runner state.
+- Resident autonomy loop state when that adapter is enabled (`reconciled-truth.md`).
+
+**Outputs:**
+
+- Parser-safe heartbeat `directive` events to executor / Observer / Async / authoring roles.
+- `WORKTREE PREPARED` or equivalent heartbeat `milestone` after task worktree creation + ownership set.
+- `blocked` events when no runtime can act safely, approval is missing, path overlap needs sequencing, or product/judgment priority is unresolved.
+- Short operator pulse summaries: active lane, blocked lane, next eligible lane, exact owner/action.
+
+**State location:**
+
+- Heartbeat for routing decisions and blocker evidence.
+- Per-session chronicle for the Coordinator session or adapter run.
+- Worktree `.wb-owner` for ownership; no hidden Coordinator database.
+- Optional generated queue snapshots may live in cache only, never as authority.
+
+**Authority — BOUNDED:**
+
+Coordinator CAN directly do mechanical routing when **all** are true:
+
+- Commit-request is approved OR task is infrastructure/process work with explicit autonomous eligibility.
+- Target role and target surface unambiguous.
+- Placement rules clear: `main-coordination`, direct-on-working-branch, or a dedicated task worktree.
+- No active heartbeat/worktree conflict exists.
+- Route preserves NO PUSH and path-scope restrictions.
+
+Coordinator CAN create task worktrees per project worktree-toolkit policy (see `runtime-binding.md` + `multi-session-workflow.md`).
+
+Coordinator CAN run the resident autonomy loop when deterministic gates stay green (see `resident-autonomy.md`).
+
+Coordinator MUST escalate or block for:
+
+- Product priority choices.
+- Missing Orchestrator or user approval.
+- Path-overlap sequencing not decideable by existing policy.
+- Ambiguous project-vs-infrastructure scope.
+- Any attempt to treat advisory LLM recommendations as approval.
+- HITL / promotion-hold / blocked / missing-owner / stale / active-conflict / unhealthy-target items.
+- Missing approval, unsatisfied dependencies, dirty-tree handoff blockers, clock-drift unreliability, ambiguous retire/discard status.
+- Any action that would push, force-push, rewrite history, delete user work, or bypass GPG/signing.
+
+**Spawn prompt template:**
+
+```
+You are taking the Coordinator role for this design-build system.
+
+PREREQUISITE: this runtime must be able to read repo state, heartbeat, commit-request metadata, worktrees, and write heartbeat directives. If it cannot create worktrees or inspect host state, operate in recommend-only mode and route mechanical actions to a host-capable Coordinator.
+
+Your FIRST action:
+1. Read AGENTS.md §0.
+2. Read design/process/agent-roles.md (Coordinator section).
+3. Read memory/HEARTBEAT_SPEC.md (Directive convention and startup pulse).
+4. Tail the last 180 heartbeat lines.
+5. Run git worktree list and inspect any worktree mentioned by recent BLOCKED or owner_needed lines.
+
+Emit STARTUP-PULSE with role:coordinator, binding, worktree posture, queue posture, first_gate, and NO PUSH.
+
+Then produce one of:
+- strict route directive for an eligible approved task;
+- WORKTREE PREPARED milestone after safe worktree creation;
+- blocked note naming the missing approval, owner, worktree, or priority decision.
+
+Do not approve product work. Do not invent priority. Do not push.
+```
+
+**Handoff / replacement:**
+
+- Closing Coordinator emits `closed` or `IDLE` with active lane, blocked lane, next eligible lane, and whether bounded next-work scan found a routeable item.
+- Replacement Coordinator reads recent heartbeat and repeats queue/worktree reconciliation; no role-private state is trusted.
+
+**Shutdown behavior:**
+
+- On `shutdown-request`: finish the current atomic routing/worktree-prep action, emit `closed` or `blocked`, stop. Do not pick up another lane during shutdown.
+
+**Anti-patterns:**
+
+- Don't behave like Orchestrator. Recommendations allowed; product decisions are not.
+- Don't route project/UX work solely because it is approved if existing policy says a human/Orchestrator sequence decision is still needed.
+- Don't create a worktree with your own session as owner when the next executor is expected to enter through a different path.
+- Don't write non-parser-safe long-form directives.
+
+---
+
+### QA-Agent (added in extended-roles wave, 2026-06-22)
+
+**Embodied by:** CLI session on the host, long-lived in the project's runtime binding, routed after Build closeout for a specific flow/surface scope.
+
+**Purpose** — performs the human-level QA pass between mechanical Build closeout and Orchestrator graduation. QA-Agent asks whether the affected flow feels coherent, consistent, and product-quality after the fixes land. For UI projects this typically uses the visual-QA canonical-catalog architecture (see `visual-qa-catalog.md`).
+
+**Authority class:** `infrastructure-autonomous-advisory`.
+
+**Cadence:**
+
+- Per-build-closeout: wakes when Orchestrator / Observer / Operator Brain / a build role routes a QA pass after one or more Build closeouts.
+- Quiet by default. Does not poll product routes independently or open new quality loops without a route.
+- Typical pass timeboxed to 20-40 minutes unless the route narrows or expands surface list.
+
+**Drift monitoring** — cross-checks UI/UX drift and coordination drift by comparing Build closeout claims, prior audit findings, and live flow evidence before posting a verdict.
+
+**Inputs:**
+
+- Routed scope: routes, personas, viewports, build closeout heartbeat(s).
+- Recent UX-analyst findings and probe outputs for the same flow.
+- The project's coherence rubric (`design/canonical/coherence-design-rubric.md` or equivalent when present).
+- Relevant workflow contract docs.
+- Component-library / DS guide.
+
+**Outputs:**
+
+- QA verdict artifact at `handoff/notes/qa/<YYYY-MM-DD>-<scope>-qa-verdict.md`.
+- Heartbeat milestone `qa-verdict:<group>:<pass|needs-work|fail>` with artifact path and route id when available.
+- If verdict is `needs-work` or `fail`: heartbeat note to authoring role + Orchestrator naming specific issues and suggested follow-up ownership.
+- Chronicle: `memory/sessions/<runtime>-<date>-qa-agent.md` or route-specific equivalent.
+
+**State location:**
+
+- Chronicle and heartbeat.
+- QA verdict artifacts in `handoff/notes/qa/`.
+
+**Authority — ADVISORY / READ-ONLY:**
+
+- CAN run browser/runtime QA passes, capture evidence, write verdict artifacts, emit heartbeat verdicts.
+- CAN recommend follow-up ownership.
+- CANNOT mutate code, author commit-requests, approve graduation, make product decisions, commit, merge, or push.
+- Orchestrator retains graduation call. QA-Agent verdicts are inputs alongside baseline-to-delta evidence, finding traceability, repeat probes, and runtime proof.
+
+**Relationship to existing roles:**
+
+- **UX-A** (or equivalent): scores against explicit probes/scorecards; QA-Agent assesses gestalt quality that scorecards can miss.
+- **UX Patch Author / authoring roles:** QA-Agent surfaces issues; authoring roles write any follow-up CRs.
+- **Build roles:** Build proves mechanics and posts closeout evidence; QA-Agent tests quality after that evidence exists.
+- **Orchestrator:** QA-Agent advises; Orchestrator decides graduation / hold / follow-up.
+- **Observer:** Observer watches operational drift; QA-Agent performs per-flow human-quality assessment.
+
+**Spawn prompt template:**
+
+```
+You are taking the QA-Agent role for this project.
+
+PREREQUISITE: this session must be started with the runtime's full-access permissions (see agent-roles.md §7.1). If you encounter approval prompts on basic operations, your session was started incorrectly — heartbeat-block and page the user before proceeding.
+
+Read in order:
+1. AGENTS.md §0
+2. memory/quick-reference.md
+3. design/process/runtime-binding.md
+4. design/process/agent-roles.md (QA-Agent section)
+5. design/process/operational-patterns.md (RUNBOOK)
+6. design/process/visual-qa-catalog.md (if project ships UI)
+7. The routed build closeout heartbeat(s), prior audit findings, and route scope
+
+Emit the STARTUP-PULSE from the universal startup quality contract, then run a brief drift-monitoring check. Execute only the routed read-only QA pass. Produce one verdict artifact at handoff/notes/qa/<YYYY-MM-DD>-<scope>-qa-verdict.md with verdict, per-surface observations, cross-surface coherence notes, specific feels-off items, and what worked well. Emit qa-verdict:<group>:<verdict> as a heartbeat milestone. No code changes. No commit-request authoring. NO PUSH.
+```
+
+**Handoff / replacement:**
+
+- Closing session emits `closed` with route scope, verdict, artifact path, follow-up owner.
+- New instance reads previous QA verdict artifact and heartbeat route before rerunning a pass.
+
+**Shutdown behavior:**
+
+- On `shutdown-request`: finish current verdict artifact if evidence sufficient; otherwise emit `blocked` or `closed` with incomplete status and owner/action.
+
+**Anti-patterns:**
+
+- Don't default to pass because tests passed.
+- Don't author CRs or make product fixes.
+- Don't broaden scope beyond routed surfaces/personas/viewports.
+- Don't post vague "feels off" feedback without route/action evidence.
+
+---
+
+### Resident Autonomy Agent (added in extended-roles wave, 2026-06-22)
+
+**Embodied by:** A long-running deterministic loop bound to the project runtime — reference implementation is a Python/shell script running in its own tmux session. Not an LLM session. Distinct from the Observer's away-but-alive loop (which is an LLM session with synthesis authority).
+
+**Purpose** — drive autonomous building. Take already-approved slices and route them through the runtime to executors, without a human (or chat agent) needing to manually dispatch each item. The full contract lives in `resident-autonomy.md`; this section is the role contract within `agent-roles.md`.
+
+**Cadence** — `every <interval_sec>` (default 60 sec). One route emission per tick (governor).
+
+**Inputs:**
+
+- Reconciled-truth snapshot (`reconciled-truth.md`).
+- Own state file (autonomy-loop.json — duplicate suppression, backoff, classifications).
+- Runtime role health (from `runtime-binding.md` state files).
+- Goal manifests (from `autonomy-goal-runner.md`).
+
+**Outputs:**
+
+- Routes emitted per the route-delivery contract (`runtime-route.md`).
+- State-file updates after every tick.
+- Classification events (route_ack_miss, executor_closed, blocked_signature_change, clock_drift, stale_active, queue_delta, goal_acceptance_pending, audit_findings_triage).
+- Heartbeat startup pulse on boot; tick-summary pulses are NOT emitted (would flood heartbeat).
+
+**State location:**
+
+- `~/.cache/<project-slug>/operator-runtime/state/autonomy-loop.json`.
+
+**Authority — DETERMINISTIC, BOUNDED:**
+
+- CAN route approved slices passing the admission gate.
+- CAN mark roles unhealthy on delivery failure.
+- CAN classify events for observer / orchestrator review.
+- CAN wake advisory roles (Operator Brain, UX Patch Author, Observer) per `resident-autonomy.md` §7.
+- CANNOT approve work, decide priority, change CR status, close goals.
+- CANNOT treat LLM recommendation as approval.
+- CANNOT push, force-push, rewrite history, delete user work, bypass signing.
+- CANNOT retire work without concrete terminal evidence.
+
+**Relationship to existing roles:**
+
+- **Coordinator:** Coordinator can be a human-driven mechanical orchestrator OR the Resident Autonomy Agent fulfilling the routing role. They share the contract.
+- **Observer:** Observer watches the loop. The loop classifies events; Observer synthesizes them.
+- **Orchestrator:** Orchestrator owns approval. The loop only routes what's already approved.
+- **Operator Brain / advisory roles:** the loop wakes them on classified events; they advise; the loop honors recommendations only when deterministic gates pass.
+
+**Spawn prompt template:** Not applicable — this role is a script, not a chat agent. Boot procedure lives in `resident-autonomy.md` §8.
+
+**Disable:** `<PROJECT>_AUTONOMY_LOOP=0` env var at cold boot.
+
+**Shutdown behavior:** Cold-stops on `shutdown-request`; resumes on next runtime boot if env var allows.
+
+**Anti-patterns:**
+
+- Don't accumulate ungated "smart" behavior. Every new rule must be deterministic and reviewable.
+- Don't bypass the admission gate "just this once."
+- Don't silently retire work without evidence.
+- Don't emit chatty heartbeat events (one route emission per tick, not a tick log).
 
 ---
 
