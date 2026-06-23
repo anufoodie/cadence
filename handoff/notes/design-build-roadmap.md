@@ -25,26 +25,28 @@ This file holds the **sequenced** critical path — what comes next, in order, a
 
 ## Current marker
 
-**Where we are right now:** (initial state — populate when first work begins)
+**Where we are right now:** Layered-extraction wave (2026-06-22) is **landed + pushed** to `anu-singh` as of 2026-06-23. Cadence is at the pluggable-engine + layered-architecture shape. No active build slice in flight. Next integration step is a PR to `main` when the maintainer is ready.
 
 ---
 
 ## Sequenced path
 
-(Populate as work queues up. Format below is suggested — adapt per project.)
+```
+- [ ] pr-to-main        — open PR anu-singh → main for the layered wave     status: pending   owner: Anu Singh
+- [ ] retire-recipes    — decide retire/keep for the 2 HOST-COMMIT-RECIPE-* status: pending   owner: Anu Singh
+- [ ] skill-md-refresh  — add LAYERED.md + examples/ to sync-engine SKILL.md status: pending   owner: Orchestrator
+- [ ] overture-leak-ci  — cadence.sh check-overture-leaks gate (OBFP Rule 9) status: pending   owner: Executor
+```
 
-```
-- [ ] <work-id> — <one-line description>           status: pending     owner: <role>
-- [ ] <work-id> — <one-line description>           status: armed       owner: <role>
-- [ ] <work-id> — <one-line description>           status: in_progress owner: <role>
-- [x] <work-id> — <one-line description>           status: landed      sha: <short-sha>
-```
+(Contract worker implementations — cr-lint / reconciled-truth / runtime-route / autonomy loop — live in downstream projects, not this repo. See TODO-tracker "Deferred work".)
 
 ---
 
 ## Recently landed (last 5)
 
 (Newest first; older landings roll off into chronicles + git log.)
+
+- [x] layered-wave — 8 signed commits, layered-extraction wave   status: pushed   sha: 73d2c21..61e2a6c  (2026-06-23)
 
 ---
 

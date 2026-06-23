@@ -16,7 +16,8 @@ Park here when you defer a decision, identify an external dependency, notice pol
 
 ### Open decisions
 
-(Decisions waiting on the user or on cross-session sign-off. Format: `[ ] <decision> — waiting on <whom> / <criterion>`.)
+- [ ] Retire the 2 `HOST-COMMIT-RECIPE-2026-06-22*.md` files — both recipes executed (commits landed+pushed 2026-06-23). Left untracked on disk; Forbidden Action #3 bars an agent from deleting handoff notes without Anu's say-so. — waiting on Anu / retire vs keep-as-record.
+- [ ] PR `anu-singh` → `main` for the layered wave — waiting on Anu / when ready to integrate.
 
 ### External dependencies
 
@@ -24,11 +25,14 @@ Park here when you defer a decision, identify an external dependency, notice pol
 
 ### Deferred work
 
-(Work intentionally not done now. Format: `[ ] <work> — deferred because <why>; revisit when <trigger>`.)
+- [ ] Contract worker implementations (cr-lint, reconciled-truth, runtime-route, autonomy loop) — deferred because they live in downstream projects per the layered discipline; revisit per-project.
+- [ ] Full obfuscated overture corpus (more anchor patterns, components, Operator Brain) — deferred because wave-2 shipped representative samples; revisit in an overture-refresh wave.
+- [ ] `cadence.sh check-overture-leaks` CI gate (OBFUSCATION_POLICY Rule 9) — deferred; revisit when overture corpus grows.
+- [ ] Sync-engine SKILL.md update to track new top-level artifacts (`LAYERED.md`, `examples/`) — deferred; revisit next sync cycle.
 
 ### Polish / cleanup
 
-(Non-load-bearing improvements that would be nice. Format: `[ ] <improvement> — area affected.`)
+- [ ] Commit the Cowork chronicle `memory/sessions/cw-2026-06-22-layered-extraction-kickoff.md` — left untracked; owning session may still finalize it.
 
 ### Questions to bring up
 
