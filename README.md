@@ -4,6 +4,8 @@ A portable starter kit for **multi-agent workflow infrastructure**. Distilled fr
 
 The name **Cadence** captures the load-bearing concept: the heartbeat / pacing / rhythm of multi-agent coordination. Agents broadcast and listen on a shared heartbeat ledger; the system runs on durable role contracts and reconciliation cadences, not on hope.
 
+> **Layered architecture (2026-06-22 extraction wave).** Cadence ships in two layers — a topology-agnostic **core engine** (everything in `cadence/` outside `examples/`) and a worked **reference instance** (`examples/overture/`) that demonstrates how a real product wires the engine with product DNA. The reference instance is obfuscated per `examples/overture/OBFUSCATION_POLICY.md`. See [`LAYERED.md`](LAYERED.md) for which discipline applies where.
+
 ---
 
 ## What this is

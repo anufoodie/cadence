@@ -1,8 +1,8 @@
 # INDEX — `cadence` Project State
 
-**Status:** Newly-instantiated — populate as the project takes shape.
-**Last updated:** 2026-05-11
-**Owner:** orchestrator agent (typically Cowork/Sonnet)
+**Status:** Layered-extraction wave landed 2026-06-22. Core engine + reference instance (`examples/overture/`) both populated. New: 8 framework-shaped contracts, 3 new role contracts, 16 new RUNBOOK entries, ~25 sync-report backlog cleared.
+**Last updated:** 2026-06-22
+**Owner:** Cowork session (`cw-2026-06-22-layered-extraction-kickoff`)
 
 This is the **rolling source of truth** for project state. It complements `design/canonical/` (binding spec content) — `canonical/` is *what we're building*; this file is *where we are right now*.
 
@@ -12,13 +12,10 @@ For the structure rationale see `memory/README.md`. For lookup discipline see AG
 
 ## Current State
 
-One-paragraph summary of where the project is overall. Update when phase / focus shifts. Carry the "Last updated" header above in sync.
-
-Example shape:
-- **Phase:** <e.g., design / prototyping / pilot / GA>
-- **Focus this week:** <one sentence>
-- **Major open thread:** <one sentence>
-- **Recent landing:** <one sentence>
+- **Phase:** Cadence is at the **pluggable-engine + layered-architecture** shape. Core engine ships 4 CORE + 10 OPTIONAL + 9 EXTENDED features. Reference instance (`examples/overture/`) demonstrates a full instantiation.
+- **Focus this week:** layered extraction wave (2026-06-22) — landed 4 sync-report 2026-06-14 HIGH proposals + 16 RUNBOOK entries from backlog + 8 new framework contracts + 3 new role contracts + 9 new feature toggles + scaffolded `examples/overture/`.
+- **Major open thread:** the layered extraction is now landed pending host-side commits. See `handoff/notes/HOST-COMMIT-RECIPE-2026-06-22-WAVE-2.md` for the sequenced commit plan.
+- **Recent landing:** sync-report 2026-06-14 backlog cleared (4 HIGH-confidence proposals: sandbox-vs-host Git boundary, adversarial-pass discipline, two living planning docs, wake checks).
 
 ---
 
