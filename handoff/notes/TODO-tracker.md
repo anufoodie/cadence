@@ -16,8 +16,9 @@ Park here when you defer a decision, identify an external dependency, notice pol
 
 ### Open decisions
 
-- [ ] Retire the 2 `HOST-COMMIT-RECIPE-2026-06-22*.md` files — both recipes executed (commits landed+pushed 2026-06-23). Left untracked on disk; Forbidden Action #3 bars an agent from deleting handoff notes without Anu's say-so. — waiting on Anu / retire vs keep-as-record.
 - [ ] PR `anu-singh` → `main` for the layered wave — waiting on Anu / when ready to integrate.
+
+  _(Resolved 2026-06-23: the 2 HOST-COMMIT-RECIPE files were retired/deleted per Anu's authorization once their commits landed+pushed.)_
 
 ### External dependencies
 
@@ -32,7 +33,7 @@ Park here when you defer a decision, identify an external dependency, notice pol
 
 ### Polish / cleanup
 
-- [ ] Commit the Cowork chronicle `memory/sessions/cw-2026-06-22-layered-extraction-kickoff.md` — left untracked; owning session may still finalize it.
+(Cowork chronicle `cw-2026-06-22-...` committed 2026-06-23 during worktree-hygiene pass.)
 
 ### Questions to bring up
 

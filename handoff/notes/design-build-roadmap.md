@@ -33,7 +33,7 @@ This file holds the **sequenced** critical path — what comes next, in order, a
 
 ```
 - [ ] pr-to-main        — open PR anu-singh → main for the layered wave     status: pending   owner: Anu Singh
-- [ ] retire-recipes    — decide retire/keep for the 2 HOST-COMMIT-RECIPE-* status: pending   owner: Anu Singh
+- [x] retire-recipes    — deleted the 2 HOST-COMMIT-RECIPE-* (commits landed) status: landed   (2026-06-23)
 - [ ] skill-md-refresh  — add LAYERED.md + examples/ to sync-engine SKILL.md status: pending   owner: Orchestrator
 - [ ] overture-leak-ci  — cadence.sh check-overture-leaks gate (OBFP Rule 9) status: pending   owner: Executor
 ```
